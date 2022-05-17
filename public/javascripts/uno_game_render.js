@@ -182,10 +182,13 @@ class UnoGameRenderer {
         this.drawContainer = drawContainer;
         this.playContainer = playContainer;
         this.handContainers = {};
+        this.displayNames = {};
     }
 
-    addPlayer(userId, container) {
-        this.handContainers[userId] = container;
+    addPlayer(user, handWrapper) {
+        const userId = user.player_id;
+        this.handContainers[userId] = handWrapper.querySelector(".unoHand");
+        this.displayNames[userId] = handWrapper.querySelector(".playerName");
     }
 
     updateHand(playerId, cardCollection) {
@@ -218,6 +221,12 @@ class UnoGameRenderer {
         this.playContainer.innerHTML = "";
         const newCard = this.#generate_card(cardData); // Generate card with card info
         this.playContainer.appendChild(newCard);
+    }
+
+    updateCurrentPlayer(playerId) {
+        for (const [userId, container] of Object.entries(this.displayNames)) {
+            container.classList.toggle("currentPlayer", userId == playerId)
+        }
     }
 
     //* ************************** Card Templates */
@@ -664,7 +673,7 @@ const gameStateProcessor = new EventProcessor(
                 turnController = new TurnController(
                     drawContainer,
                     playContainer,
-                    document.getElementById("player0"),
+                    document.getElementById("player0").querySelector(".unoHand"),
                     gameWindow
                 );
 
@@ -693,11 +702,16 @@ const gameStateProcessor = new EventProcessor(
                 // placement of players based on how many
                 const newPos = playerMapping.get(players.length);
                 for (let i = 0; i < newPos.length; i++) {
-                    const handContainer = document.getElementById(
+                    const handContainerWrapper = document.getElementById(
                         `player${newPos[i]}`
-                    );
+                    )
                     const player = players[(i + offset) % players.length];
-                    gameRenderer.addPlayer(player.player_id, handContainer);
+                    gameRenderer.addPlayer(player, handContainerWrapper);
+                    
+                    const nameTag = document.getElementById(
+                        `player${newPos[i]}`
+                    ).querySelector(".playerName");
+                    nameTag.innerHTML = player.display_name;
                 }
             }
 
@@ -722,6 +736,8 @@ const gameStateProcessor = new EventProcessor(
                     ]
                 );
             }
+
+            gameRenderer.updateCurrentPlayer(game_state.game.player_id_turn);
 
             document
                 .getElementById("callUno")
